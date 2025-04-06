@@ -126,7 +126,7 @@ initial begin
 
 integer i;
 initial begin
-    for(i = 0; i < 40; i = i + 1) begin
+    for(i = 0; i < 24; i = i + 1) begin
         #10 clk = ~clk;
     end
 end
@@ -142,6 +142,18 @@ initial begin
 #20;
 start = 1; 
 sel = 2'b00;
+inbus = 8'd40; // A
+#20;
+start = 0;
+#20;
+inbus = 8'd12; // M
+#70;
+rst=1;
+start=0;
+#10;
+rst=0;
+start = 1; 
+sel = 2'b01;
 inbus = 8'd40; // A
 #20;
 start = 0;
