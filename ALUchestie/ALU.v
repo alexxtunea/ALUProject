@@ -78,20 +78,6 @@ assign q_0 = 1'b0;
 assign q_min1 = 1'b0;
 assign cnt7 = 1'b0;
 
-/*always @(posedge clk or posedge rst) begin
-        if (rst) begin
-            A <= 8'd0;
-            M <= 8'd0;
-            Q <= 8'd0;
-            outbus <= 16'd0;
-        end else begin
-            A <= ((({8{c[0]}} & inbus[7:0]) | ({8{c[4]}} & sum)));
-            M <= ({8{c[3]}} & inbus[7:0]);
-            outbus <= ({{8{1'b0}}, {A & {8{c[11]}}}});
-	end
-    end
-endmodule
-*/
 endmodule
 
 module ALU_tb;
