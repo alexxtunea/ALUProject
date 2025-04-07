@@ -67,6 +67,5 @@ module Parallel_Adder_tb;
             {x, y, cin} = {$random} % (2**19); // random 9+9+1 bits
             #10;
         end
-        $finish;
     end
 endmodule
