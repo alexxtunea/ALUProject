@@ -36,19 +36,21 @@ assign st_next[ST_5] = st[ST_4] & (
                          (sel[1] & sel[0] & sign) | 
                          (sel[1] & ~sel[0] & ~q_0 & q_min1)
                        ) | 
-                       (st[ST_10] & sel[1] & ~sel[0] & ~q_0 & q_min1 & ~cnt7); //adaugat nou
+                       (st[ST_10] & sel[1] & ~sel[0] & ~q_0 & q_min1 & ~cnt7) | //adaugat nou Alexia 
+		       (st[ST_9] & ~(cnt7) & sel[1] & sel[0] & sign); //adaugat nou -Alex 
 assign st_next[ST_6] = st[ST_4] & (
                          (~sel[1] & sel[0]) | 
                          (sel[1] & sel[0] & ~sign) | 
                          (sel[1] & ~sel[0] & ~q_0 & q_min1)
                        ) | 
-                       (st[ST_10] & sel[1] & ~sel[0] & q_0 & ~q_min1 & ~cnt7); //adaugat nou
+                       (st[ST_10] & sel[1] & ~sel[0] & q_0 & ~q_min1 & ~cnt7) |  //adaugat nou Alexia 
+			(st[ST_9] & ~(cnt7) & sel[1] & sel[0] & ~(sign)); //adaugat nou -Alex
 
-assign st_next[ST_7] = (st[ST_5] | st[ST_6]) & sel[1] & sel[0];
+assign st_next[ST_7] = ((st[ST_5] | st[ST_6]) & sel[1] & sel[0]) | (st[ST_9] & ~(cnt7) & sel[1] & sel[0] & (st[ST_5] | st[ST_6])); //adaugat nou -Alex 
 
 assign st_next[ST_8] = (st[ST_5] | st[ST_6]) & (sel[1] & ~(sel[0])) |
 	(q_0 ~^ q_min1) & (st[ST_4] & sel[1] & ~(sel[0])) | 
-	(q_0 ~^ q_min1) & (st[ST_10] & sel[1] & ~(sel[0]) & ~(cnt7)); //rand nou
+	(q_0 ~^ q_min1) & (st[ST_10] & sel[1] & ~(sel[0]) & ~(cnt7)); //rand nou Alexia 
 
 assign st_next[ST_9] = st[ST_7];
 
