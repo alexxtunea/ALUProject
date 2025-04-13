@@ -12,7 +12,7 @@ module ALU(
 );
 
 wire [7:0] A, Q, M;
-wire sign, cnt7;
+wire sign, cnt7, cout;
 
 wire[8:0]sum;
 wire[12:0]c;
@@ -21,16 +21,18 @@ reg q_min1_reg, sign_reg;
 
 always @(posedge clk or posedge rst) begin
     if (rst) begin
+        sign_reg <= 1'b0;
         q_min1_reg <= 1'b0;
-	sign_reg <= 1'b0;	
     end
-    else if(c[2])
-	sign_reg <= 1'b0;
-    else if(c[6])  //folosim c[6] ca sa facem LSHIFT A.Q
-	sign_reg <= A[7];
-    else if (c[7]) // presupunem ca c[7] controleaza update-ul lui q_min1
-        q_min1_reg <= Q[0];
-	
+    else begin
+        // Logica combinatorie pentru a seta valoarea corect? a 'sign'
+        if (c[2]) 
+            sign_reg <= 1'b0;
+        else if (c[7])
+            q_min1_reg <= Q[0];  // Actualizezi q_min1_reg când c[7] este activ
+	else if(c[4])
+	     sign_reg<=sum[8];
+    end
 end
 
 assign q_min1 = q_min1_reg;
@@ -58,7 +60,7 @@ control_unit unitate(
 );
 
 Parallel_Adder adder(
-	.x({1'b0,M^{8{c[5]}}}),
+	.x({1'b0|c[5],M^{8{c[5]}}}),
 	.y({sign,A} & {9{c[4]}} | {{sign,A} & {9{c[10]}}}), //am modificat aici sa faca adunarea cand e activ c4
 	.cin(c[5]),
 	.z(sum),
@@ -68,26 +70,50 @@ Parallel_Adder adder(
 ushift #(.WIDTH(8)) reg_A(
 	.clk(clk),
 	.reset(rst),
-	//.clr(1'b0),
-	//.ld(c[0] | c[1] |  c[4] | c[7]),
-	.sel({2{c[0]}} | {2{c[1]}} | {2{c[4]}} | {1'b0,{c[7]}} | {{c[6]}, 1'b0} | {2{c[2]}}),//same here pt lshift-ul de la impartire 
-	.bsRight(A[7] & c[7]),  //am adaugat semnalul de control
-	.bsLeft(Q[7] & c[6]),        
-	.a( ({8{c[0]}} & inbus[7:0]) | ({8{c[4]}} & sum[7:0]) | ({8{c[1]}} & 8'b00000000) | ({8{c[7]}} & A) | ({8{c[2]}} & inbus[15:8])), //aici am facut incarcarea  lui A de pe cei 8 MSB de la inbus
+	.sel({2{c[0]}} | {2{c[1]}} | {2{c[4]}} | {1'b0, c[7]} | {c[6], 1'b0} | {2{c[2]}}),
+	.bsRight(A[7] & c[7]),
+	.bsLeft(Q[7] & c[6]),
+	.a(
+		({8{c[0]}} & inbus[7:0]) |
+		({8{c[4]}} & sum[7:0]) |
+		({8{c[1]}} & 8'b00000000) |
+		({8{c[2]}} & inbus[15:8])
+	),
 	.a_shifted(A)
 );
 
+/*
 ushift #(.WIDTH(8)) reg_Q(
 	.clk(clk),
 	.reset(rst),
 	//.clr(1'b0),
 	//.ld(c[1] | c[7]),
-	.sel({2{c[1]}} | {1'b0,{c[7]}} | {{c[6]}, 1'b0} | {2{c[2]}}),
+	.sel({2{c[1]}} | {1'b0,{c[7]}} | {2{c[2]}} | {{c[6]}, 1'b0} | {2{c[8]}}),
 	.bsRight(A[0]),
-	.bsLeft(1'b0 | (~(sign) & c[6])), //am pus sa se bage ~sign pe c[6] in loc de c[8] si ramane c[6] doar pt cnt++ (sper ca nu se strica altceva lol)
-	.a(((({8{c[1]}} & inbus[7:0])  | ({8{c[7]}} & Q))) | ({8{c[2]}} & inbus[7:0])),
+	.bsLeft(1'b0), 
+	.a(
+	(({8{c[1]}} & inbus[7:0]) | 
+	 ({8{c[2]}} & inbus[7:0]) | 
+	 ({8{c[8]}} & {Q[7:2], ~sign, 1'b0}) // aici modific?m doar Q[1] când c[8] e activ
+	)),
+	.a_shifted(Q)
+);*/
+
+ushift #(.WIDTH(8)) reg_Q(
+	.clk(clk),
+	.reset(rst),
+	.sel({2{c[1]}} | {1'b0, c[7]} | {c[6], 1'b0} | {2{c[2]}} | {2{c[8]}}),
+	.bsRight(1'b0),
+	.bsLeft(1'b0), 
+	.a(
+		({8{c[1]}} & inbus[7:0]) | 
+		({8{c[2]}} & inbus[7:0]) | 
+		({8{c[8]}} & {Q[7:1], ~sign}) | // P?streaz? Q[7:1] neschimbat, doar modific? Q[0]
+		({8{~c[8]}} & Q)  // P?streaz? Q neschimbat atunci când c[8] nu este activ
+	),
 	.a_shifted(Q)
 );
+
 
 ushift #(.WIDTH(8)) reg_M(
 	.clk(clk),
@@ -147,7 +173,7 @@ initial begin
 
 integer i;
 initial begin
-    for(i = 0; i < 78; i = i + 1) begin
+    for(i = 0; i < 150; i = i + 1) begin
         #10 clk = ~clk;
     end
 end
@@ -158,7 +184,7 @@ initial begin
     #15 rst = 0;
 end
 
-// Furniz?m valorile de input ?i control?m "start"
+// Furnizam valorile de input si controlam "start"
 initial begin
 #20;
 //adunare
@@ -195,14 +221,27 @@ inbus = 8'd40; // Q
 start = 0;
 #20;
 inbus = 8'd12; // M
+#500
+//impartire
+rst=1;
+start=0;
+#40;
+rst=0;
+start = 1; 
+sel = 2'b11;
+inbus = 16'd11542; // A.Q
+#20;
+start = 0;
+#20;
+inbus = 8'd135; // M
 end
 
 initial begin
-    $display("Time\tclk\trst\tstart\tsel\tinbus\tsign\tA\tM\tQ\tq_min1\tc0\tc1\tc2\tc3\tc4\tc5\tc6\tc8\tc9\tc10\tc11\tc12\tcnt7\toutbus\tfinish");
-    $monitor("%0t\t%b\t%b\t%b\t%02b\t%0d\t%b\t%8b\t%0d\t%0d\t%b\t%b\t%b\t%b\t%b\t%b\t%b\t%b\t%b\t%b\t%b\t%b\t%b\t%0d\t%0d\t%b", 
+    $display("Time\tclk\trst\tstart\tsel\tinbus\tsign\tA\tQ\tq_min1\tM\tc0\tc1\tc2\tc3\tc4\tc5\tc6\tc7\tc8\tc9\tc10\tc11\tc12\tcnt7\toutbus\tfinish");
+    $monitor("%0t\t%b\t%b\t%b\t%02b\t%0d\t%b\t%0d\t%0d\t%b\t%0d\t%b\t%b\t%b\t%b\t%b\t%b\t%b\t%b\t%b\t%b\t%b\t%b\t%b\t%0d\t%0d\t%b", 
         $time, clk, rst, start, sel, inbus, 
-        a.sign, a.A, a.M, a.Q, a.q_min1,
-        a.c[0], a.c[1], a.c[2], a.c[3], a.c[4], a.c[5], a.c[6], a.c[8], a.c[9], a.c[10], a.c[11], a.c[12],
+        a.sign, a.A, a.Q, a.q_min1, a.M,
+        a.c[0], a.c[1], a.c[2], a.c[3], a.c[4], a.c[5], a.c[6], a.c[7], a.c[8], a.c[9], a.c[10], a.c[11], a.c[12],
         a.cnt7, outbus, finish);
 end
 
