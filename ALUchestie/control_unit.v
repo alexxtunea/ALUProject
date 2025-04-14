@@ -62,9 +62,9 @@ assign st_next[ST_11] = st[ST_9];
 assign st_next[ST_12] = sign & cnt7 & st[ST_10];
 
 assign st_next[ST_13] = (st[ST_5] | st[ST_6]) & ~(sel[1]) | 
-	st[ST_12] | (st[ST_10] & cnt7 & ~(sign)) | (st[ST_11] & cnt7);
+	st[ST_12] | (st[ST_10] & cnt7 & ~(sign));
 
-assign st_next[ST_14] = sel[1] & ~sel[0] & st[ST_13];
+assign st_next[ST_14] = (st[ST_11] & cnt7);
 assign st_next[ST_15] = sel[1] & sel[0] & st[ST_13];
 
 
