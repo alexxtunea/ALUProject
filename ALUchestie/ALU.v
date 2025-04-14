@@ -82,34 +82,17 @@ ushift #(.WIDTH(8)) reg_A(
 	.a_shifted(A)
 );
 
-/*
-ushift #(.WIDTH(8)) reg_Q(
-	.clk(clk),
-	.reset(rst),
-	//.clr(1'b0),
-	//.ld(c[1] | c[7]),
-	.sel({2{c[1]}} | {1'b0,{c[7]}} | {2{c[2]}} | {{c[6]}, 1'b0} | {2{c[8]}}),
-	.bsRight(A[0]),
-	.bsLeft(1'b0), 
-	.a(
-	(({8{c[1]}} & inbus[7:0]) | 
-	 ({8{c[2]}} & inbus[7:0]) | 
-	 ({8{c[8]}} & {Q[7:2], ~sign, 1'b0}) // aici modific?m doar Q[1] când c[8] e activ
-	)),
-	.a_shifted(Q)
-);*/
 
 ushift #(.WIDTH(8)) reg_Q(
 	.clk(clk),
 	.reset(rst),
 	.sel({2{c[1]}} | {1'b0, c[7]} | {c[6], 1'b0} | {2{c[2]}} | {2{c[8]}}),
-	.bsRight(1'b0),
+	.bsRight(A[0]),
 	.bsLeft(1'b0), 
 	.a(
 		({8{c[1]}} & inbus[7:0]) | 
 		({8{c[2]}} & inbus[7:0]) | 
-		({8{c[8]}} & {Q[7:1], ~sign}) | // P?streaz? Q[7:1] neschimbat, doar modific? Q[0]
-		({8{~c[8]}} & Q)  // P?streaz? Q neschimbat atunci când c[8] nu este activ
+		({8{c[8]}} & {Q[7:1], ~sign}) 
 	),
 	.a_shifted(Q)
 );
