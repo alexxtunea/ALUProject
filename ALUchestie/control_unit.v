@@ -2,7 +2,7 @@ module control_unit(
 	input clk, rst, start,
 	input [1:0] sel,
 	input q_0, q_min1, sign, cnt7,
-	output reg[12:0] c,
+	output reg[13:0] c,
 	output reg finish 
 );
 
@@ -13,20 +13,21 @@ localparam ST_3 = 4'd3;
 localparam ST_4 = 4'd4;
 localparam ST_5 = 4'd5;
 localparam ST_6 = 4'd6;
-localparam ST_7 = 4'd7;
-localparam ST_8 = 4'd8;
-localparam ST_9 = 4'd9;
-localparam ST_10 = 4'd10;
-localparam ST_11 = 4'd11;
-localparam ST_12 = 4'd12;
-localparam ST_13 = 4'd13;
+localparam ST_7 = 4'd7; //q[0]
+localparam ST_8 = 4'd8; //cnt
+localparam ST_9 = 4'd9; //asr
+localparam ST_10 = 4'd10; //lshft
+localparam ST_11 = 4'd11; //cnt
+localparam ST_12 = 4'd12; //cor
+localparam ST_13 = 4'd13; //a
+localparam ST_14 = 4'd14; //q
 
-reg[13:0] st;
-wire[13:0] st_next;
+reg[14:0] st;
+wire[14:0] st_next;
 
 
 //ecuatii de feedback
-assign st_next[ST_0] = (st[ST_0] & ~start) | (st[ST_13]) | (st[ST_12] & ~(sel[1]));
+assign st_next[ST_0] = (st[ST_0] & ~start) | (st[ST_14]) | (st[ST_13] & ~(sel[1]));
 assign st_next[ST_1] = (~(sel[1]) & start & st[ST_0]);
 assign st_next[ST_2] = sel[1] & ~(sel[0]) & start & st[ST_0];
 assign st_next[ST_3] = sel[1] & sel[0] & start & st[ST_0];
@@ -36,32 +37,33 @@ assign st_next[ST_5] = st[ST_4] & (
                          (sel[1] & sel[0] & sign) | 
                          (sel[1] & ~sel[0] & ~q_0 & q_min1)
                        ) | 
-                       (st[ST_10] & sel[1] & ~sel[0] & ~q_0 & q_min1 & ~cnt7) | //adaugat nou Alexia 
-		       (st[ST_9] & ~(cnt7) & sel[1] & sel[0] & sign); //adaugat nou -Alex 
+                       (st[ST_11] & sel[1] & ~sel[0] & ~q_0 & q_min1 & ~cnt7) | //adaugat nou Alexia 
+		       (st[ST_10] & ~(cnt7) & sel[1] & sel[0] & sign); //adaugat nou -Alex 
 assign st_next[ST_6] = st[ST_4] & (
                          (~sel[1] & sel[0]) | 
                          (sel[1] & sel[0] & ~sign) | 
                          (sel[1] & ~sel[0] & ~q_0 & q_min1)
                        ) | 
-                       (st[ST_10] & sel[1] & ~sel[0] & q_0 & ~q_min1 & ~cnt7) |  //adaugat nou Alexia 
-			(st[ST_9] & ~(cnt7) & sel[1] & sel[0] & ~(sign)); //adaugat nou -Alex
+                       (st[ST_11] & sel[1] & ~sel[0] & q_0 & ~q_min1 & ~cnt7) |  //adaugat nou Alexia 
+			(st[ST_10] & ~(cnt7) & sel[1] & sel[0] & ~(sign)); //adaugat nou -Alex
 
 assign st_next[ST_7] = (st[ST_5] | st[ST_6]) & sel[1] & sel[0];
+assign st_next[ST_8]=st[ST_7];
 
-assign st_next[ST_8] = (st[ST_5] | st[ST_6]) & (sel[1] & ~(sel[0])) |
+assign st_next[ST_9] = (st[ST_5] | st[ST_6]) & (sel[1] & ~(sel[0])) |
 	(q_0 ~^ q_min1) & (st[ST_4] & sel[1] & ~(sel[0])) | 
-	(q_0 ~^ q_min1) & (st[ST_10] & sel[1] & ~(sel[0]) & ~(cnt7)); //rand nou Alexia 
-
-assign st_next[ST_9] = st[ST_7];
+	(q_0 ~^ q_min1) & (st[ST_11] & sel[1] & ~(sel[0]) & ~(cnt7)); //rand nou Alexia 
 
 assign st_next[ST_10] = st[ST_8];
 
-assign st_next[ST_11] = sign & cnt7 & st[ST_9];
+assign st_next[ST_11] = st[ST_9];
 
-assign st_next[ST_12] = (st[ST_5] | st[ST_6]) & ~(sel[1]) | 
-	st[ST_11] | (st[ST_9] & cnt7 & ~(sign)) | (st[ST_10] & cnt7);
+assign st_next[ST_12] = sign & cnt7 & st[ST_10];
 
-assign st_next[ST_13] = sel[1] & st[ST_12];
+assign st_next[ST_13] = (st[ST_5] | st[ST_6]) & ~(sel[1]) | 
+	st[ST_12] | (st[ST_10] & cnt7 & ~(sign)) | (st[ST_11] & cnt7);
+
+assign st_next[ST_14] = sel[1] & st[ST_13];
 
 
 //ecuatiile de iesire 
@@ -78,6 +80,7 @@ assign c[9] = st[ST_10];
 assign c[10] = st[ST_11];
 assign c[11] = st[ST_12];
 assign c[12] = st[ST_13];
+assign c[13] = st[ST_14];
 assign finish = st[ST_0];
  
 always @(posedge clk or posedge rst)
@@ -96,7 +99,7 @@ module control_unit_tb;
 reg clk, rst, start;
 reg [1:0] sel;
 reg q_0, q_min1, sign, cnt7;
-wire[12:0] c;
+wire[13:0] c;
 wire finish;
 
 
