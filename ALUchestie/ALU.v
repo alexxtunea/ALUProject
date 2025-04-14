@@ -15,7 +15,7 @@ wire [7:0] A, Q, M;
 wire sign, cnt7, cout;
 
 wire[8:0]sum;
-wire[13:0]c;
+wire[14:0]c;
 
 reg q_min1_reg, sign_reg;
 
@@ -115,10 +115,10 @@ ushift #(.WIDTH(16)) outbussy(
 	.reset(rst),
 	//.clr(1'b0),
 	//.ld(c[11]),
-	.sel( ({2{c[12]}}) | ({2{c[13]}}) ),
+	.sel( ({2{c[12]}}) | ({2{c[13]}}) | ({2{c[14]}}) ),
 	.bsRight(1'b0),
 	.bsLeft(1'b0),
-	.a({{8{1'b0}}, {8{c[12]}} & A} | {{{8{c[13]}} & A}, {8{c[13]}} & Q}),
+	.a({{8{1'b0}}, {8{c[12]}} & A} | {{{8{c[13]}} & A}, {8{c[13]}} & Q} | {{8{1'b0}}, {8{c[14]}} & Q}),
 	.a_shifted(outbus)
 );
 
@@ -156,7 +156,7 @@ initial begin
 
 integer i;
 initial begin
-    for(i = 0; i < 154; i = i + 1) begin
+    for(i = 0; i < 152; i = i + 1) begin
         #10 clk = ~clk;
     end
 end
@@ -220,11 +220,11 @@ inbus = 8'd135; // M
 end
 
 initial begin
-    $display("Time\tclk\trst\tstart\tsel\tinbus\tsign\tA\tQ\tq_min1\tM\tc0\tc1\tc2\tc3\tc4\tc5\tc6\tc7\tc8\tc9\tc10\tc11\tc12\tc14\tcnt7\toutbus\tfinish");
-    $monitor("%0t\t%b\t%b\t%b\t%02b\t%0d\t%b\t%0d\t%0d\t%b\t%0d\t%b\t%b\t%b\t%b\t%b\t%b\t%b\t%b\t%b\t%b\t%b\t%b\t%b\t%b\t%0d\t%0d\t%b", 
+    $display("Time\tclk\trst\tstart\tsel\tinbus\tsign\tA\tQ\tq_min1\tM\tc0\tc1\tc2\tc3\tc4\tc5\tc6\tc7\tc8\tc9\tc10\tc11\tc12\tc13\tc14\tcnt7\toutbus\tfinish");
+    $monitor("%0t\t%b\t%b\t%b\t%02b\t%0d\t%b\t%0d\t%0d\t%b\t%0d\t%b\t%b\t%b\t%b\t%b\t%b\t%b\t%b\t%b\t%b\t%b\t%b\t%b\t%b\t%b\t%0d\t%0d\t%b", 
         $time, clk, rst, start, sel, inbus, 
         a.sign, a.A, a.Q, a.q_min1, a.M,
-        a.c[0], a.c[1], a.c[2], a.c[3], a.c[4], a.c[5], a.c[6], a.c[7], a.c[8], a.c[9], a.c[10], a.c[11], a.c[12], a.c[13],
+        a.c[0], a.c[1], a.c[2], a.c[3], a.c[4], a.c[5], a.c[6], a.c[7], a.c[8], a.c[9], a.c[10], a.c[11], a.c[12], a.c[13], a.c[14],
         a.cnt7, outbus, finish);
 end
 
