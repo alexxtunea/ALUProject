@@ -43,7 +43,7 @@ assign st_next[ST_5] = st[ST_4] & (
 assign st_next[ST_6] = st[ST_4] & (
                          (~sel[1] & sel[0]) | 
                          (sel[1] & sel[0] & ~sign) | 
-                         (sel[1] & ~sel[0] & ~q_0 & q_min1)
+                         (sel[1] & ~sel[0] & q_0 & ~q_min1)
                        ) | 
                        (st[ST_11] & sel[1] & ~sel[0] & q_0 & ~q_min1 & ~cnt7) |  //adaugat nou Alexia 
 			(st[ST_10] & ~(cnt7) & sel[1] & sel[0] & ~(sign)); //adaugat nou -Alex
