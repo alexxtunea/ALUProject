@@ -2,43 +2,39 @@
 `include"counter.v"
 `include"control_unit.v"
 `include"ushift.v"
+`include"dff.v"
 
 module ALU(
 	input clk, rst, start,
 	input[1:0] sel,
-	input[15:0] inbus, //am pus inbus pe 16 biti
+	input[15:0] inbus, 
 	output wire[15:0] outbus,
-	output finish
+	output finish, of_flag
 );
+    wire [7:0] A, Q, M;
+    wire cnt7, cout, of_wire, q_min1, sign;
+    wire [8:0] sum;
+    wire [14:0] c;
 
-wire [7:0] A, Q, M;
-wire sign, cnt7, cout;
+    // Flip-flopuri pentru retinerea sign si q_min1
+    dff dff_sign(
+        .clk(clk),
+        .reset(rst),
+        .d((c[2] & 1'b0) | 
+           (c[4] & sum[8]) | 
+           (~(c[2] | c[4]) & sign)),
+        .q(sign)
+    );
 
-wire[8:0]sum;
-wire[14:0]c;
+    dff dff_q_min1(
+        .clk(clk),
+        .reset(rst),
+        .d((c[8] & Q[0]) | 
+           (~c[8] & q_min1)),
+        .q(q_min1)
+    );
 
-reg q_min1_reg, sign_reg;
-
-always @(posedge clk or posedge rst) begin
-    if (rst) begin
-        sign_reg <= 1'b0;
-        q_min1_reg <= 1'b0;
-    end
-    else begin
-        // Logica combinatorie pentru a seta valoarea corect? a 'sign'
-        if (c[2]) 
-            sign_reg <= 1'b0;
-        else if (c[8])
-            q_min1_reg <= Q[0];  // Actualizezi q_min1_reg când c[7] este activ
-	else if(c[4])
-	     sign_reg<=sum[8];
-    end
-end
-
-assign q_min1 = q_min1_reg;
-assign sign = sign_reg;
-
-counter contor(
+    counter contor(
 	.clk(clk),
 	.rst(rst),
 	.c8(c[7]),
@@ -46,7 +42,7 @@ counter contor(
 	.cnt7(cnt7)
 );
 
-control_unit unitate(
+    control_unit unitate(
 	.clk(clk),
 	.rst(rst),
 	.start(start),
@@ -61,11 +57,14 @@ control_unit unitate(
 
 Parallel_Adder adder(
 	.x({1'b0|c[5],M^{8{c[5]}}}),
-	.y({sign,A} & {9{c[4]}} | {{sign,A} & {9{c[11]}}}), //am modificat aici sa faca adunarea cand e activ c4
+	.y({sign,A} & {9{c[4]}} | {{sign,A} & {9{c[11]}}}), 
 	.cin(c[5]),
 	.z(sum),
-	.cout()
+	.cout(),
+	.oflow(of_wire)
 );
+
+assign of_flag = of_wire & ~(sel[1]) & c[4];
 
 ushift #(.WIDTH(8)) reg_A(
 	.clk(clk),
@@ -101,8 +100,6 @@ ushift #(.WIDTH(8)) reg_Q(
 ushift #(.WIDTH(8)) reg_M(
 	.clk(clk),
 	.reset(rst),
-	//.clr(1'b0),
-	//.ld(c[3]),
 	.sel( ({2{c[3]}}) ),
 	.bsRight(1'b0),
 	.bsLeft(1'b0),
@@ -113,15 +110,13 @@ ushift #(.WIDTH(8)) reg_M(
 ushift #(.WIDTH(16)) outbussy(
 	.clk(clk),
 	.reset(rst),
-	//.clr(1'b0),
-	//.ld(c[11]),
 	.sel( ({2{c[12]}}) | ({2{c[13]}}) | ({2{c[14]}}) ),
 	.bsRight(1'b0),
 	.bsLeft(1'b0),
 	.a({{8{1'b0}}, {8{c[12]}} & A} | {{{8{c[13]}} & A}, {8{c[13]}} & Q} | {{8{1'b0}}, {8{c[14]}} & Q}),
 	.a_shifted(outbus)
 );
-
+	
 endmodule
 
 module ALU_tb;
@@ -129,7 +124,7 @@ module ALU_tb;
 	reg[1:0] sel;
 	reg[15:0] inbus;
 	wire[15:0] outbus;
-	wire finish;
+	wire finish, of_flag;
 
 
 ALU a(
@@ -139,7 +134,8 @@ ALU a(
 	.sel(sel),
 	.inbus(inbus),
 	.outbus(outbus),
-	.finish(finish)
+	.finish(finish),
+	.of_flag(of_flag)
 );
 
 
@@ -156,7 +152,7 @@ initial begin
 
 integer i;
 initial begin
-    for(i = 0; i < 152; i = i + 1) begin
+    for(i = 0; i < 250; i = i + 1) begin
         #10 clk = ~clk;
     end
 end
@@ -167,32 +163,62 @@ initial begin
     #15 rst = 0;
 end
 
-// Furnizam valorile de input si controlam "start"
 initial begin
 #20;
-//adunare
+//Adunare fara overflow 
 start = 1; 
 sel = 2'b00;
-inbus = 8'd40; // A
+inbus = 8'd20; // A = 20
 #20;
 start = 0;
 #20;
-inbus = 8'd12; // M
+inbus = 8'd75; // M = 75
 #70;
-//scadere
+//Adunare cu overflow 
+rst=1;
+start=0;
+#10;
+rst=0;
+start = 1; 
+sel = 2'b00;
+inbus = 8'b01111111; // A = 127
+#20;
+start = 0;
+#20;
+inbus = 8'b01111110; // M = 126 
+#70;
+//Se va activa flagul de overflow, iar rezultatul va fi -3 in C2 adica 1111 1101
+
+//Scadere fara overflow
 rst=1;
 start=0;
 #10;
 rst=0;
 start = 1; 
 sel = 2'b01;
-inbus = 8'd40; // A
+inbus = 8'd178; // A = 178
 #20;
 start = 0;
 #20;
-inbus = 8'd12; // M
+inbus = 8'd34; // M = 34
 #70;
-//inmultire
+
+//Scadere cu overflow
+rst=1;
+start=0;
+#10;
+rst=0;
+start = 1; 
+sel = 2'b01;
+inbus = 8'b10000000; // A = -128 in C2
+#20;
+start = 0;
+#20;
+inbus = 8'b00000001; // M = 1 in C2
+#70;
+//Se va activa flagul de overflow, iar rezultatul va fi -127 in C2. Fiind un nr pozitiv, se va afisa corect in transcript
+
+//Inmultire cu numere pozitive 
 rst=1;
 start=0;
 #40;
@@ -205,7 +231,23 @@ start = 0;
 #20;
 inbus = 8'd12; // M
 #500
-//impartire
+
+//Inmultire cu numere negative 
+rst=1;
+start=0;
+#40;
+rst=0;
+start = 1; 
+sel = 2'b10;
+inbus = 8'b11100111; // Q = -25 in C2
+#20;
+start = 0;
+#20;
+inbus = 8'b11010110; // M = -42 in C2
+#500
+//-25 * -42 = 1050 
+
+//Impartire
 rst=1;
 start=0;
 #40;
@@ -220,13 +262,12 @@ inbus = 8'd135; // M
 end
 
 initial begin
-    $display("Time\tclk\trst\tstart\tsel\tinbus\tsign\tA\tQ\tq_min1\tM\tc0\tc1\tc2\tc3\tc4\tc5\tc6\tc7\tc8\tc9\tc10\tc11\tc12\tc13\tc14\tcnt7\toutbus\tfinish");
-    $monitor("%0t\t%b\t%b\t%b\t%02b\t%0d\t%b\t%0d\t%0d\t%b\t%0d\t%b\t%b\t%b\t%b\t%b\t%b\t%b\t%b\t%b\t%b\t%b\t%b\t%b\t%b\t%b\t%0d\t%0d\t%b", 
+    $display("Time\tclk\trst\tstart\tsel\tinbus\tsign\tA\tQ\tq_min1\tM\toutbus\t\toutbus_dec\t\tof\tfinish");
+    $monitor("%0t\t%b\t%b\t%b\t%02b\t%0d\t%b\t%0d\t%0d\t%b\t%0d\t%016b\t%0d\t\t\t%b\t%b", 
         $time, clk, rst, start, sel, inbus, 
-        a.sign, a.A, a.Q, a.q_min1, a.M,
-        a.c[0], a.c[1], a.c[2], a.c[3], a.c[4], a.c[5], a.c[6], a.c[7], a.c[8], a.c[9], a.c[10], a.c[11], a.c[12], a.c[13], a.c[14],
-        a.cnt7, outbus, finish);
+        a.sign, a.A, a.Q, a.q_min1, a.M, outbus, outbus, of_flag, finish);
 end
+
 
 
 endmodule
