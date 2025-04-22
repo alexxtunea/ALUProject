@@ -31,7 +31,8 @@ module Parallel_Adder(
     input [8:0] x, y,
     input cin,
     output [8:0] z,
-    output cout
+    output cout,
+    output oflow
 );
     wire [7:0] carry;
 
@@ -44,20 +45,23 @@ module Parallel_Adder(
     fac fa6 (.x(x[6]), .y(y[6]), .cin(carry[5]),   .z(z[6]), .cout(carry[6]));
     fac fa7 (.x(x[7]), .y(y[7]), .cin(carry[6]),   .z(z[7]), .cout(carry[7]));
     fac fa8 (.x(x[8]), .y(y[8]), .cin(carry[7]),   .z(z[8]), .cout(cout));
+	
+    assign oflow = carry[7] ^ carry[6];
 endmodule
 
 module Parallel_Adder_tb;
     reg [8:0] x, y;
     reg cin;
     wire [8:0] z;
-    wire cout;
+    wire cout, oflow;
 
     Parallel_Adder uut (
         .x(x),
         .y(y),
         .cin(cin),
         .z(z),
-        .cout(cout)
+        .cout(cout),
+	.oflow(oflow)
     );
     integer k;
     initial begin
