@@ -58,7 +58,7 @@ module ALU(
 Parallel_Adder adder(
 	.x({1'b0|c[5],M^{8{c[5]}}}),
 	.y({sign,A} & {9{c[4]}} | {{sign,A} & {9{c[11]}}}), 
-	.cin(c[5]),
+	.cin(c[5]),                                              
 	.z(sum),
 	.cout(),
 	.oflow(of_wire)
@@ -69,14 +69,15 @@ assign of_flag = of_wire & ~(sel[1]) & c[4];
 ushift #(.WIDTH(8)) reg_A(
 	.clk(clk),
 	.reset(rst),
-	.sel({2{c[0]}} | {2{c[1]}} | {2{c[4]}} | {1'b0, c[8]} | {c[7], 1'b0} | {2{c[2]}}),
+	.sel({2{c[0]}} | {2{c[1]}} | {2{c[4]}} | {1'b0, c[8]} | {c[9], 1'b0} | {2{c[2]}} | {2{c[11]}}),   //sa se incarce in A si cand e c[11]
 	.bsRight(A[7] & c[8]),
-	.bsLeft(Q[7] & c[7]),
+	.bsLeft(Q[7] & c[9]),
 	.a(
 		({8{c[0]}} & inbus[7:0]) |
 		({8{c[4]}} & sum[7:0]) |
 		({8{c[1]}} & 8'b00000000) |
-		({8{c[2]}} & inbus[14:7])
+		({8{c[2]}} & inbus[14:7]) |
+		({8{c[11]}} & sum[7:0])     //rand adaugat pentru c[11]
 	),
 	.a_shifted(A)
 );
@@ -85,7 +86,7 @@ ushift #(.WIDTH(8)) reg_A(
 ushift #(.WIDTH(8)) reg_Q(
 	.clk(clk),
 	.reset(rst),
-	.sel({2{c[1]}} | {1'b0, c[8]} | {c[7], 1'b0} | {2{c[2]}} | {2{c[6]}}),
+	.sel({2{c[1]}} | {1'b0, c[8]} | {c[9], 1'b0} | {2{c[2]}} | {2{c[6]}}),
 	.bsRight(A[0]),
 	.bsLeft(1'b0), 
 	.a(
@@ -152,7 +153,7 @@ initial begin
 
 integer i;
 initial begin
-    for(i = 0; i < 550; i = i + 1) begin
+    for(i = 0; i < 300; i = i + 1) begin
         #10 clk = ~clk;
     end
 end
@@ -271,22 +272,19 @@ start=0;
 rst=0;
 start = 1; 
 sel = 2'b11;
-inbus = 16'd2739; // A.Q  
+inbus = 16'd5771; // A.Q  
 #20;
 start = 0;
 #20;
-inbus = 8'd25; // M
+inbus = 8'd125; // M
 
 end
 
 //5771 : 135 = 42 rest 101
 initial begin
-    $display("Time\tclk\trst\tstart\tsel\tinbus\tsign\tA\tQ\tq_min1\tM\toutbus\t\toutbus_dec\t\tof\tfinish");
-    $monitor("%0t\t%b\t%b\t%b\t%02b\t%0d\t%b\t%0d\t%0d\t%b\t%0d\t%016b\t%0d\t\t\t%b\t%b", 
+    $display("Time\tclk\trst\tstart\tsel\tinbus\tsign\tA\tQ\tq_min1\tM\toutbus\t\toutbus_dec\t\tof\tfinish\cnt\c11");
+    $monitor("%0t\t%b\t%b\t%b\t%02b\t%0d\t%b\t%0d\t%0d\t%b\t%0d\t%016b\t%0d\t\t\t%b\t%b\t%b\t%b", 
         $time, clk, rst, start, sel, inbus, 
-        a.sign, a.A, a.Q, a.q_min1, a.M, outbus, outbus, of_flag, finish);
+        a.sign, a.A, a.Q, a.q_min1, a.M, outbus, outbus, of_flag, finish, a.cnt7, a.c[11]);
 end
-
-
-
 endmodule

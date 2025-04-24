@@ -14,10 +14,10 @@ localparam ST_4 = 4'd4;
 localparam ST_5 = 4'd5;
 localparam ST_6 = 4'd6;
 localparam ST_7 = 4'd7; //q[0]
-localparam ST_8 = 4'd8; //cnt
+localparam ST_8 = 4'd8; //cnt imp
 localparam ST_9 = 4'd9; //asr
-localparam ST_10 = 4'd10; //lshft
-localparam ST_11 = 4'd11; //cnt
+localparam ST_10 = 4'd10; //lshift
+localparam ST_11 = 4'd11; //cnt inm
 localparam ST_12 = 4'd12; //cor
 localparam ST_13 = 4'd13; //a
 localparam ST_14 = 4'd14; //a.q
@@ -39,17 +39,17 @@ assign st_next[ST_5] = st[ST_4] & (
                          (sel[1] & ~sel[0] & ~q_0 & q_min1)
                        ) | 
                        (st[ST_11] & sel[1] & ~sel[0] & ~q_0 & q_min1 & ~cnt7) | //adaugat nou Alexia 
-		       (st[ST_10] & ~(cnt7) & sel[1] & sel[0] & sign); //adaugat nou -Alex 
+		       (st[ST_10] & sel[1] & sel[0] & sign); //adaugat nou -Alex 
 assign st_next[ST_6] = st[ST_4] & (
                          (~sel[1] & sel[0]) | 
                          (sel[1] & sel[0] & ~sign) | 
                          (sel[1] & ~sel[0] & q_0 & ~q_min1)
                        ) | 
                        (st[ST_11] & sel[1] & ~sel[0] & q_0 & ~q_min1 & ~cnt7) |  //adaugat nou Alexia 
-			(st[ST_10] & ~(cnt7) & sel[1] & sel[0] & ~(sign)); //adaugat nou -Alex
+			(st[ST_10] & sel[1] & sel[0] & ~(sign)); //adaugat nou -Alex
 
 assign st_next[ST_7] = (st[ST_5] | st[ST_6]) & sel[1] & sel[0];
-assign st_next[ST_8]=st[ST_7];
+assign st_next[ST_8]=st[ST_7] & ~cnt7;
 
 assign st_next[ST_9] = (st[ST_5] | st[ST_6]) & (sel[1] & ~(sel[0])) |
 	(q_0 ~^ q_min1) & (st[ST_4] & sel[1] & ~(sel[0])) | 
@@ -59,10 +59,10 @@ assign st_next[ST_10] = st[ST_8];
 
 assign st_next[ST_11] = st[ST_9];
 
-assign st_next[ST_12] = sign & cnt7 & st[ST_10];
+assign st_next[ST_12] = sign & cnt7 & st[ST_7];
 
 assign st_next[ST_13] = (st[ST_5] | st[ST_6]) & ~(sel[1]) | 
-	st[ST_12] | (st[ST_10] & cnt7 & ~(sign));
+	st[ST_12] | (st[ST_7] & cnt7 & ~(sign));
 
 assign st_next[ST_14] = (st[ST_11] & cnt7);
 assign st_next[ST_15] = sel[1] & sel[0] & st[ST_13];
