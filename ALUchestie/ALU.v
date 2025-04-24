@@ -76,7 +76,7 @@ ushift #(.WIDTH(8)) reg_A(
 		({8{c[0]}} & inbus[7:0]) |
 		({8{c[4]}} & sum[7:0]) |
 		({8{c[1]}} & 8'b00000000) |
-		({8{c[2]}} & inbus[15:8])
+		({8{c[2]}} & inbus[14:7])
 	),
 	.a_shifted(A)
 );
@@ -90,7 +90,7 @@ ushift #(.WIDTH(8)) reg_Q(
 	.bsLeft(1'b0), 
 	.a(
 		({8{c[1]}} & inbus[7:0]) | 
-		({8{c[2]}} & inbus[7:0]) | 
+		({8{c[2]}} & {inbus[6:0], 1'b0}) | 
 		({8{c[6]}} & {Q[7:1], ~sign}) 
 	),
 	.a_shifted(Q)
@@ -152,7 +152,7 @@ initial begin
 
 integer i;
 initial begin
-    for(i = 0; i < 250; i = i + 1) begin
+    for(i = 0; i < 550; i = i + 1) begin
         #10 clk = ~clk;
     end
 end
@@ -216,7 +216,7 @@ start = 0;
 #20;
 inbus = 8'b00000001; // M = 1 in C2
 #70;
-//Se va activa flagul de overflow, iar rezultatul va fi -127 in C2. Fiind un nr pozitiv, se va afisa corect in transcript
+//Se va activa flagul de overflow, iar rezultatul va fi 127 in C2. Fiind un nr pozitiv, se va afisa corect in transcript
 
 //Inmultire cu numere pozitive 
 rst=1;
@@ -247,6 +247,23 @@ inbus = 8'b11010110; // M = -42 in C2
 #500
 //-25 * -42 = 1050 
 
+//Inmultire cu un numar negativ si unul pozitiv 
+rst=1;
+start=0;
+#40;
+rst=0;
+start = 1; 
+sel = 2'b10;
+inbus = 8'b11101001; // Q = -23 in C2
+#20;
+start = 0;
+#20;
+inbus = 8'b01001011; // M = 75 in C2
+#500
+//-23 * 75 = -1725 care in C2 este 1111 1001 0100 0011  
+//Pe outbus fiind perceput ce unsigned se va afisa 63811
+
+
 //Impartire
 rst=1;
 start=0;
@@ -254,13 +271,15 @@ start=0;
 rst=0;
 start = 1; 
 sel = 2'b11;
-inbus = 16'd11542; // A.Q
+inbus = 16'd2739; // A.Q  
 #20;
 start = 0;
 #20;
-inbus = 8'd135; // M
+inbus = 8'd25; // M
+
 end
 
+//5771 : 135 = 42 rest 101
 initial begin
     $display("Time\tclk\trst\tstart\tsel\tinbus\tsign\tA\tQ\tq_min1\tM\toutbus\t\toutbus_dec\t\tof\tfinish");
     $monitor("%0t\t%b\t%b\t%b\t%02b\t%0d\t%b\t%0d\t%0d\t%b\t%0d\t%016b\t%0d\t\t\t%b\t%b", 
