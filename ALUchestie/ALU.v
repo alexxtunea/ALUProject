@@ -21,8 +21,9 @@ module ALU(
         .clk(clk),
         .reset(rst),
         .d((c[2] & 1'b0) | 
-           (c[4] & sum[8]) | 
-           (~(c[2] | c[4]) & sign)),
+   		(c[4] & sum[8]) | 
+  		(c[9] & A[7]) |
+   		(~(c[2] | c[4] | c[9]) & sign)),   // aici adaugat cu c[9]
         .q(sign)
     );
 
@@ -276,7 +277,7 @@ inbus = 16'd5771; // A.Q
 #20;
 start = 0;
 #20;
-inbus = 8'd125; // M
+inbus = 8'd135; // M
 
 end
 
